@@ -1,19 +1,37 @@
 import { Request, Response } from "express";
 import User from "../../models/user.model";
-import {
-  isInterested,
-  isNotInterested,
-  sendWhatsappMessage,
-} from "../whatsapp.controller";
+import { sendWhatsappMessage } from "../whatsapp.controller";
+import dotenv from "dotenv";
+import { aiWillDecideIfInterestedOrNot } from "../../utils/geminiFunctions";
+import { mainMessage } from "../../data/data";
 
-// To handle the initial verification request from Meta
+dotenv.config();
+
+const verifyToken = process.env.WEBHOOK_VERIFY_TOKEN;
+
 export const verifyWebhook = (req: Request, res: Response) => {
-  // ... (logic from Meta's documentation)
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode && token) {
+    if (mode === "subscribe" && token === verifyToken) {
+      console.log("Whatsapp WEBHOOK_VERIFIED");
+      return res.status(200).send(challenge);
+    } else {
+      return res.status(403).send("Forbidden");
+    }
+  }
+  return res.status(400).send("Bad Request");
 };
 
 // To handle incoming messages from users
 export const handleIncomingMessage = async (req: Request, res: Response) => {
   const body = req.body;
+  // console.log(
+  //   "WebHook received from Whatsapp Cloud--",
+  //   JSON.stringify(req.body, null, 2)
+  // );
 
   // Basic check for a valid WhatsApp message structure
   if (
@@ -24,8 +42,10 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
     const change = body.entry[0].changes[0];
     if (change.value.messages) {
       const msg = change.value.messages[0];
-      const from = msg.from; // User's WhatsApp number
+      const from = "+" + msg.from; // User's WhatsApp number
       const text = msg.text.body;
+
+      console.log(`Received message from ${from}: ${text}`);
 
       let user = await User.findOne({ whatsappNumber: from });
 
@@ -52,24 +72,29 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
           // Now you check their reply.
           // For simplicity, we assume any reply means "Yes we are offer"
           user.state = "awaiting_main_message_reply";
-          await sendWhatsappMessage(
-            from,
-            "Great! Here is our main offer... [Your Main Message Here]"
-          );
+          await sendWhatsappMessage(from, mainMessage);
           break;
 
         case "awaiting_main_message_reply":
+          const isInterestedReply = await aiWillDecideIfInterestedOrNot(
+            text,
+            mainMessage
+          );
           // Analyze their reply to the main message
-          if (isInterested(text)) {
+          if (isInterestedReply === "true") {
             user.state = "interested";
-            await sendWhatsappMessage(from, "Ok great we will Connect you.");
+            await sendWhatsappMessage(
+              from,
+              "Awesome! 🎉\nWe will connect you to our travel expert shortly. Expect a call from our team soon 📞"
+            );
             // Here you would also trigger a notification to your team!
             // (e.g., send an email, Slack message, etc.)
-          } else if (isNotInterested(text)) {
-            user.state = "not_interested";
-            await sendWhatsappMessage(from, "[Your Future Message Here]");
           } else {
-            // If the reply is ambiguous, you might ask for clarification or do nothing.
+            user.state = "not_interested";
+            await sendWhatsappMessage(
+              from,
+              "No worries 😊\nFeel free to message us anytime if you need help with travel in the future. Have a great day!"
+            );
           }
           break;
         // Other states are handled by the cron job, not by user replies.
