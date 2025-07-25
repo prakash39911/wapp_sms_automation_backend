@@ -1,12 +1,12 @@
 import cron from "node-cron";
 import User from "../../models/user.model";
-import { sendWhatsappMessage } from "../whatsapp.controller";
+import { sendWhatsappMessage } from "../../utils/whatsappFunctions";
 
 // This function will be called from index.ts to start the jobs
-export const startCronJobs = () => {
+export const startWhatsAppCronJobs = () => {
   // Run this job every hour
   cron.schedule("0 * * * *", async () => {
-    console.log("Running scheduled follow-up job...");
+    console.log("Running scheduled whatsapp follow-up job...");
 
     const twoDaysAgo = new Date(new Date().getTime() - 2 * 60 * 1000);
     const oneWeekAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -85,6 +85,7 @@ export const startCronJobs = () => {
         user.whatsappNumber,
         "Planning a trip soon, {{1}}?\nWe can help you get the best seats and rates! Ping us anytime ✈️🚆"
       );
+      user.lastMessageTimestamp = new Date();
       await user.save();
     }
   });

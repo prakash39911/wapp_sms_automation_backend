@@ -1,31 +1,7 @@
 import axios from "axios";
 import User from "../models/user.model";
 import { Request, Response } from "express";
-
-export const sendWhatsappMessage = async (to: string, message: string) => {
-  try {
-    await axios.post(
-      `https://graph.facebook.com/v23.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        messaging_product: "whatsapp",
-        to: to,
-        type: "text",
-        text: {
-          body: message,
-        },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    console.log(`Message Successfully sent to ${to}`);
-  } catch (error: any) {
-    console.error("Error sending WhatsApp message:", error.response.data);
-  }
-};
+import { sendWhatsappMessage } from "../utils/whatsappFunctions";
 
 // End point to Test sending a WhatsApp message
 // This is just for testing purposes, We can remove it later
@@ -66,29 +42,36 @@ export const startConversation = async (req: Request, res: Response) => {
       .json({ message: "Name and WhatsApp number are required" });
   }
 
-  let user = await User.findOne({ whatsappNumber });
-  if (!user) {
-    user = new User({
-      name,
-      whatsappNumber,
-      state: "started",
-      conversationHistory: [],
+  try {
+    let user = await User.findOne({ whatsappNumber });
+
+    if (!user) {
+      user = new User({
+        name,
+        whatsappNumber,
+        state: "started",
+        conversationHistory: [],
+      });
+    }
+    user.state = "started";
+    user.lastMessageTimestamp = new Date();
+
+    const initialMessage =
+      "Hi👋, thanks for reaching out to Sahil Travels!\nAre you looking for Sleeper or Seater? Private tour or Public? Let us know your travel dates too ✈️";
+    await sendWhatsappMessage(whatsappNumber, initialMessage);
+
+    user.conversationHistory.push({
+      message: initialMessage,
+      from: "bot",
+      timestamp: new Date(),
     });
+    await user.save();
+
+    res.status(200).json({
+      message: "Conversation started. Initial message sent.",
+    });
+  } catch (error) {
+    console.error("Error while starting whatsapp conversation", error);
+    res.status(500).send("Failed to start conversation");
   }
-  user.state = "started";
-  user.lastMessageTimestamp = new Date();
-
-  const initialMessage =
-    "Hi👋, thanks for reaching out to Sahil Travels!\nAre you looking for Sleeper or Seater? Private tour or Public? Let us know your travel dates too ✈️";
-  await sendWhatsappMessage(whatsappNumber, initialMessage);
-
-  user.conversationHistory.push({
-    message: initialMessage,
-    from: "bot",
-    timestamp: new Date(),
-  });
-  await user.save();
-  res.status(200).json({
-    message: "Conversation started. Initial message sent.",
-  });
 };

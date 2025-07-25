@@ -6,8 +6,8 @@ export type TConversationState =
   | "awaiting_main_message_reply"
   | "interested"
   | "not_interested"
-  | "no_reply_1" // After Main Message
-  | "no_reply_2" // After Short Message
+  | "no_reply_1"
+  | "no_reply_2"
   | "completed";
 
 export interface IUser extends Document {

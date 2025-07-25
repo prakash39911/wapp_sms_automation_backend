@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import User from "../../models/user.model";
-import { sendWhatsappMessage } from "../whatsapp.controller";
 import dotenv from "dotenv";
 import { aiWillDecideIfInterestedOrNot } from "../../utils/geminiFunctions";
 import { mainMessage } from "../../data/data";
+import { sendWhatsappMessage } from "../../utils/whatsappFunctions";
 
 dotenv.config();
 
