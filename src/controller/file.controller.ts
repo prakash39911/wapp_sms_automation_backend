@@ -2,8 +2,6 @@ import { Request, Response } from "express";
 import { userQueue } from "../config/queue";
 
 export default async function handleFileUpload(req: Request, res: Response) {
-  console.log("Request Body--", req.file);
-
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
@@ -18,7 +16,7 @@ export default async function handleFileUpload(req: Request, res: Response) {
       message: "File uploaded successfully. Processing will begin shortly.",
     });
   } catch (error) {
-    console.error("Error adding job to queue:", error);
-    res.status(500).json({ message: "Failed to queue file for processing." });
+    console.error("Error While Processing the Excel File", error);
+    res.status(500).json({ message: "Failed to Process file." });
   }
 }

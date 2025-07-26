@@ -13,7 +13,7 @@ export const startWhatsAppCronJobs = () => {
 
     // Find users who haven't replied to the Bait message
     const userWhoHasNotReplyedToBaitMessage = await WhatsappConversation.find({
-      state: "started",
+      state: "bait_message_sent",
       lastMessageTimestamp: { $lte: twoDaysAgo },
     });
 

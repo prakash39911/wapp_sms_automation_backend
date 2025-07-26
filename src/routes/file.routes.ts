@@ -1,6 +1,5 @@
 import Router from "express";
 import handleFileUpload from "../controller/file.controller";
-import multer from "multer";
 import { uploadExcel } from "../config/multer";
 
 const router = Router();

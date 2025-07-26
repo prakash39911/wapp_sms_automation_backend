@@ -43,29 +43,29 @@ export const startConversation = async (req: Request, res: Response) => {
   }
 
   try {
-    let user = await WhatsappConversation.findOne({ whatsappNumber });
+    let conversation = await WhatsappConversation.findOne({ whatsappNumber });
 
-    if (!user) {
-      user = new WhatsappConversation({
+    if (!conversation) {
+      conversation = new WhatsappConversation({
         name,
         whatsappNumber,
         state: "awaiting_main_message_reply",
         conversationHistory: [],
       });
     }
-    user.state = "awaiting_main_message_reply";
-    user.lastMessageTimestamp = new Date();
+    conversation.state = "awaiting_main_message_reply";
+    conversation.lastMessageTimestamp = new Date();
 
     const initialMessage =
       "Hi👋, thanks for reaching out to Sahil Travels!\nAre you looking for Sleeper or Seater? Private tour or Public? Let us know your travel dates too ✈️";
     await sendWhatsappMessage(whatsappNumber, initialMessage);
 
-    user.conversationHistory.push({
+    conversation.conversationHistory.push({
       message: initialMessage,
       from: "bot",
       timestamp: new Date(),
     });
-    await user.save();
+    await conversation.save();
 
     res.status(200).json({
       message: "Conversation started. Initial message sent.",

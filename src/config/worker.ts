@@ -7,7 +7,7 @@ import { sendWhatsappMessage } from "../utils/whatsappFunctions";
 import connectDB from "./db";
 import { config } from "dotenv";
 
-config(); // Load environment variables from .env file
+config();
 
 // Establish the database connection first
 connectDB().then(() => {
@@ -79,25 +79,24 @@ connectDB().then(() => {
       const { userId } = job.data;
 
       try {
-        await connectDB();
+        const conversation = await WhatsappConversation.findById(userId);
 
-        const user = await WhatsappConversation.findById(userId);
-
-        if (!user) {
-          throw new Error(`User with id ${userId} not found.`);
+        if (!conversation) {
+          throw new Error(`Conversation with id ${userId} not found.`);
         }
 
         const messageSent = await sendWhatsappMessage(
-          user.whatsappNumber,
+          conversation.whatsappNumber,
           "Hello, this is a bait message to start the conversation."
         );
-        user.state = "bait_message_sent";
-        user.conversationHistory.push({
+        conversation.state = "bait_message_sent";
+        conversation.lastMessageTimestamp = new Date();
+        conversation.conversationHistory.push({
           message: "Initial bait message sent.",
           from: "bot",
           timestamp: new Date(),
         });
-        await user.save();
+        await conversation.save();
       } catch (error) {
         console.error(`Failed to send Bait message to user ${userId}:`, error);
         throw error;

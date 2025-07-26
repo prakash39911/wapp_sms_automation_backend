@@ -47,9 +47,11 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
 
       console.log(`Received message from ${from}: ${text}`);
 
-      let user = await WhatsappConversation.findOne({ whatsappNumber: from });
+      let conversation = await WhatsappConversation.findOne({
+        whatsappNumber: from,
+      });
 
-      if (!user) {
+      if (!conversation) {
         // This flow assumes the conversation is initiated by you.
         // If a user messages you first out of the blue, you can decide how to handle it.
         // For now, let's assume users are created when your website form is submitted.
@@ -58,20 +60,20 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
       }
 
       // Update conversation history and timestamp
-      user.conversationHistory.push({
+      conversation.conversationHistory.push({
         message: text,
         from: "user",
         timestamp: new Date(),
       });
-      user.lastMessageTimestamp = new Date();
+      conversation.lastMessageTimestamp = new Date();
 
       // STATE MACHINE LOGIC
-      switch (user.state) {
+      switch (conversation.state) {
         case "bait_message_sent":
           // This state is after you sent the "Sleeper or Seat..." message.
           // Now you check their reply.
           // For simplicity, we assume any reply means "Yes we are offer"
-          user.state = "awaiting_main_message_reply";
+          conversation.state = "awaiting_main_message_reply";
           await sendWhatsappMessage(from, mainMessage);
           break;
 
@@ -82,7 +84,7 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
           );
           // Analyze their reply to the main message
           if (isInterestedReply === "true") {
-            user.state = "interested";
+            conversation.state = "interested";
             await sendWhatsappMessage(
               from,
               "Awesome! 🎉\nWe will connect you to our travel expert shortly. Expect a call from our team soon 📞"
@@ -90,7 +92,7 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
             // Here you would also trigger a notification to your team!
             // (e.g., send an email, Slack message, etc.)
           } else {
-            user.state = "not_interested";
+            conversation.state = "not_interested";
             await sendWhatsappMessage(
               from,
               "No worries 😊\nFeel free to message us anytime if you need help with travel in the future. Have a great day!"
@@ -99,7 +101,7 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
           break;
         // Other states are handled by the cron job, not by user replies.
       }
-      await user.save();
+      await conversation.save();
     }
   }
   res.sendStatus(200);
