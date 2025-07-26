@@ -5,7 +5,6 @@ export async function sendSMS(to: string, message: string) {
     const response = await twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
-      messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
       to: to,
     });
 
@@ -14,3 +13,5 @@ export async function sendSMS(to: string, message: string) {
     console.error("Error sending SMS:", error);
   }
 }
+
+// messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,

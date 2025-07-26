@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import User from "../../models/user.model";
+import { WhatsappConversation } from "../../models/whatsapp.model";
 import dotenv from "dotenv";
 import { aiWillDecideIfInterestedOrNot } from "../../utils/geminiFunctions";
 import { mainMessage } from "../../data/data";
@@ -47,7 +47,7 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
 
       console.log(`Received message from ${from}: ${text}`);
 
-      let user = await User.findOne({ whatsappNumber: from });
+      let user = await WhatsappConversation.findOne({ whatsappNumber: from });
 
       if (!user) {
         // This flow assumes the conversation is initiated by you.
@@ -67,7 +67,7 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
 
       // STATE MACHINE LOGIC
       switch (user.state) {
-        case "started":
+        case "bait_message_sent":
           // This state is after you sent the "Sleeper or Seat..." message.
           // Now you check their reply.
           // For simplicity, we assume any reply means "Yes we are offer"

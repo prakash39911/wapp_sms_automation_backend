@@ -53,7 +53,7 @@ export async function handleStartConversation(req: Request, res: Response) {
     // Send the bait message
     await sendSMS(
       phoneNumber,
-      "Thanks for contacting Sahil Travels! We offer sleeper buses and private tours. Reply 'YES' for packages!"
+      "Hi, thanks for reaching out to Sahil Travels! Are you looking for Sleeper or Seater? Private tour or Public? Let us know your travel dates too"
     );
     await conversation.save();
 

@@ -1,5 +1,5 @@
 import axios from "axios";
-import User from "../models/user.model";
+import { WhatsappConversation } from "../models/whatsapp.model";
 import { Request, Response } from "express";
 import { sendWhatsappMessage } from "../utils/whatsappFunctions";
 
@@ -43,17 +43,17 @@ export const startConversation = async (req: Request, res: Response) => {
   }
 
   try {
-    let user = await User.findOne({ whatsappNumber });
+    let user = await WhatsappConversation.findOne({ whatsappNumber });
 
     if (!user) {
-      user = new User({
+      user = new WhatsappConversation({
         name,
         whatsappNumber,
-        state: "started",
+        state: "awaiting_main_message_reply",
         conversationHistory: [],
       });
     }
-    user.state = "started";
+    user.state = "awaiting_main_message_reply";
     user.lastMessageTimestamp = new Date();
 
     const initialMessage =

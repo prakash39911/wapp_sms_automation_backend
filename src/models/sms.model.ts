@@ -17,7 +17,7 @@ export interface IConversation extends Document {
 }
 
 const smsConversationSchema = new Schema<IConversation>({
-  phoneNumber: { type: String, required: true, unique: true },
+  phoneNumber: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true },
   state: { type: String, required: true, default: "started" },
   lastMessageTimestamp: { type: Date, default: Date.now },

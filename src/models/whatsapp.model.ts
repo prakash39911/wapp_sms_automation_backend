@@ -2,15 +2,16 @@ import mongoose, { Schema, Document } from "mongoose";
 
 // Define the possible states a user can be in, based on your flowchart.
 export type TConversationState =
-  | "started"
-  | "awaiting_main_message_reply"
+  | "pending" //when contact is added
+  | "bait_message_sent" //when bait message is sent
+  | "awaiting_main_message_reply" //when awaiting main message reply
   | "interested"
   | "not_interested"
   | "no_reply_1"
   | "no_reply_2"
   | "completed";
 
-export interface IUser extends Document {
+export interface IwhatsappConversation extends Document {
   whatsappNumber: string;
   name?: string;
   state: TConversationState;
@@ -22,11 +23,11 @@ export interface IUser extends Document {
   }[];
 }
 
-const UserSchema: Schema = new Schema(
+const whatsappConversationSchema = new Schema<IwhatsappConversation>(
   {
-    whatsappNumber: { type: String, required: true, unique: true },
+    whatsappNumber: { type: String, required: true, unique: true, index: true },
     name: { type: String },
-    state: { type: String, required: true, default: "started" },
+    state: { type: String, required: true, default: "pending" },
     lastMessageTimestamp: { type: Date, default: Date.now },
     conversationHistory: [
       {
@@ -41,4 +42,7 @@ const UserSchema: Schema = new Schema(
   }
 );
 
-export default mongoose.model<IUser>("User", UserSchema);
+export const WhatsappConversation = mongoose.model<IwhatsappConversation>(
+  "WhatsappConversation",
+  whatsappConversationSchema
+);

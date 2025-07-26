@@ -3,9 +3,15 @@ import { twilioClient } from "../../config/twilio";
 import { SMSConversation } from "../../models/sms.model";
 import { sendSMS } from "../../utils/smsFunctions";
 import { aiWillDecideIfInterestedOrNot } from "../../utils/geminiFunctions";
+const { MessagingResponse } = require("twilio").twiml;
 
 // Webhook for incoming Twilio messages
 export async function handleIncomingSMS(req: Request, res: Response) {
+  console.log(
+    "Incoming SMS webhook triggered",
+    JSON.stringify(req.body, null, 2)
+  );
+
   const from = req.body.From;
   const body = req.body.Body.toLowerCase();
 

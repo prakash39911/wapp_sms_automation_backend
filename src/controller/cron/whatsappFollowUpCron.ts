@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import User from "../../models/user.model";
+import { WhatsappConversation } from "../../models/whatsapp.model";
 import { sendWhatsappMessage } from "../../utils/whatsappFunctions";
 
 // This function will be called from index.ts to start the jobs
@@ -12,7 +12,7 @@ export const startWhatsAppCronJobs = () => {
     const oneWeekAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Find users who haven't replied to the Bait message
-    const userWhoHasNotReplyedToBaitMessage = await User.find({
+    const userWhoHasNotReplyedToBaitMessage = await WhatsappConversation.find({
       state: "started",
       lastMessageTimestamp: { $lte: twoDaysAgo },
     });
@@ -28,7 +28,7 @@ export const startWhatsAppCronJobs = () => {
     }
 
     // Find users who haven't replied to the main message
-    const usersForFollowUp1 = await User.find({
+    const usersForFollowUp1 = await WhatsappConversation.find({
       state: "awaiting_main_message_reply",
       lastMessageTimestamp: { $lte: twoDaysAgo },
     });
@@ -44,7 +44,7 @@ export const startWhatsAppCronJobs = () => {
     }
 
     // Find users who haven't replied to the first follow-up
-    const usersForFollowUp2 = await User.find({
+    const usersForFollowUp2 = await WhatsappConversation.find({
       state: "no_reply_1",
       lastMessageTimestamp: { $lte: twoDaysAgo },
     });
@@ -59,7 +59,7 @@ export const startWhatsAppCronJobs = () => {
       await user.save();
     }
 
-    const usersForFollowUpLast = await User.find({
+    const usersForFollowUpLast = await WhatsappConversation.find({
       state: "no_reply_2",
       lastMessageTimestamp: { $lte: twoDaysAgo },
     });
@@ -74,7 +74,7 @@ export const startWhatsAppCronJobs = () => {
       await user.save();
     }
     // Find users for weekly follow-up
-    const notInterestedUsers = await User.find({
+    const notInterestedUsers = await WhatsappConversation.find({
       state: "not_interested",
       lastMessageTimestamp: { $lte: oneWeekAgo },
     });
