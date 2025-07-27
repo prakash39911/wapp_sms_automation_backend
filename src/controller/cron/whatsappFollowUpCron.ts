@@ -4,10 +4,10 @@ import { processFollowUp } from "../../utils/FollowUpMessages";
 // This function will be called from index.ts to start the jobs
 export const startWhatsAppCronJobs = () => {
   // Run this job every hour
-  cron.schedule("0 * * * *", async () => {
+  cron.schedule("*/2 * * * *", async () => {
     console.log("Running scheduled whatsapp follow-up job...");
 
-    const twoDaysAgo = new Date(new Date().getTime() - 2 * 60 * 1000);
+    const twoDaysAgo = new Date(new Date().getTime() - 1 * 60 * 1000);
     const oneWeekAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Find users who haven't replied to the Bait message

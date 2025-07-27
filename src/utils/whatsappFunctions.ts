@@ -1,4 +1,7 @@
 import axios from "axios";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export const sendWhatsappMessage = async (to: string, message: string) => {
   try {
