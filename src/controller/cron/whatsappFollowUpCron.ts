@@ -1,6 +1,5 @@
 import cron from "node-cron";
-import { WhatsappConversation } from "../../models/whatsapp.model";
-import { sendWhatsappMessage } from "../../utils/whatsappFunctions";
+import { processFollowUp } from "../../utils/FollowUpMessages";
 
 // This function will be called from index.ts to start the jobs
 export const startWhatsAppCronJobs = () => {
@@ -12,81 +11,43 @@ export const startWhatsAppCronJobs = () => {
     const oneWeekAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Find users who haven't replied to the Bait message
-    const userWhoHasNotReplyedToBaitMessage = await WhatsappConversation.find({
-      state: "bait_message_sent",
-      lastMessageTimestamp: { $lte: twoDaysAgo },
-    });
-
-    for (const user of userWhoHasNotReplyedToBaitMessage) {
-      user.state = "completed"; // Move to no_reply_1 state
-      await sendWhatsappMessage(
-        user.whatsappNumber,
-        "Hey,\n just checking if you're still planning your trip? 😊\nLet us know !"
-      );
-      user.lastMessageTimestamp = new Date();
-      await user.save();
-    }
+    await processFollowUp(
+      "bait_message_sent",
+      twoDaysAgo,
+      "Hey,\n just checking if you're still planning your trip? 😊\nLet us know !",
+      "completed"
+    );
 
     // Find users who haven't replied to the main message
-    const usersForFollowUp1 = await WhatsappConversation.find({
-      state: "awaiting_main_message_reply",
-      lastMessageTimestamp: { $lte: twoDaysAgo },
-    });
-
-    for (const user of usersForFollowUp1) {
-      user.state = "no_reply_1";
-      await sendWhatsappMessage(
-        user.whatsappNumber,
-        "Hey,\n just checking if you're still planning your trip? 😊\nLet us know if you need options — happy to help!"
-      ); // Or your "Short Message"
-      user.lastMessageTimestamp = new Date();
-      await user.save();
-    }
+    await processFollowUp(
+      "awaiting_main_message_reply",
+      twoDaysAgo,
+      "Hey,\n just checking if you're still planning your trip? 😊\nLet us know if you need options — happy to help!",
+      "no_reply_1"
+    );
 
     // Find users who haven't replied to the first follow-up
-    const usersForFollowUp2 = await WhatsappConversation.find({
-      state: "no_reply_1",
-      lastMessageTimestamp: { $lte: twoDaysAgo },
-    });
+    await processFollowUp(
+      "no_reply_1",
+      twoDaysAgo,
+      "Hi,\n just wanted to check if you're still interested in planning your trip with us?",
+      "no_reply_2"
+    );
 
-    for (const user of usersForFollowUp2) {
-      user.state = "no_reply_2";
-      await sendWhatsappMessage(
-        user.whatsappNumber,
-        "Hi,\n just wanted to check if you're still interested in planning your trip with us?"
-      );
-      user.lastMessageTimestamp = new Date();
-      await user.save();
-    }
+    // Find users who haven't replied to the second follow-up
+    await processFollowUp(
+      "no_reply_2",
+      twoDaysAgo,
+      "Final follow-up! 😊\nLet us know if you're still looking — happy to help whenever you're ready.",
+      "completed"
+    );
 
-    const usersForFollowUpLast = await WhatsappConversation.find({
-      state: "no_reply_2",
-      lastMessageTimestamp: { $lte: twoDaysAgo },
-    });
-
-    for (const user of usersForFollowUpLast) {
-      user.state = "completed"; // Mark as completed or you can set to another state
-      await sendWhatsappMessage(
-        user.whatsappNumber,
-        "Final follow-up! 😊\nLet us know if you're still looking — happy to help whenever you're ready."
-      );
-      user.lastMessageTimestamp = new Date();
-      await user.save();
-    }
     // Find users for weekly follow-up
-    const notInterestedUsers = await WhatsappConversation.find({
-      state: "not_interested",
-      lastMessageTimestamp: { $lte: oneWeekAgo },
-    });
-
-    for (const user of notInterestedUsers) {
-      user.state = "completed"; // Or another state if you want to keep track
-      await sendWhatsappMessage(
-        user.whatsappNumber,
-        "Planning a trip soon, {{1}}?\nWe can help you get the best seats and rates! Ping us anytime ✈️🚆"
-      );
-      user.lastMessageTimestamp = new Date();
-      await user.save();
-    }
+    await processFollowUp(
+      "not_interested",
+      oneWeekAgo,
+      "Planning a trip soon?\nWe can help you get the best seats and rates! Ping us anytime ✈️🚆",
+      "completed"
+    );
   });
 };
