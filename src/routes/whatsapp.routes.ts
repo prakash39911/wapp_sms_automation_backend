@@ -17,7 +17,7 @@ router.post("/webhook", handleIncomingMessage);
 //send a message to a user
 router.post("/send-message", sendWappMessage);
 
-// Start Conversation with a user
+// Start Conversation with a user, reached us using form or chat on our website.
 router.post("/start-conversation", startConversation);
 
 export default router;

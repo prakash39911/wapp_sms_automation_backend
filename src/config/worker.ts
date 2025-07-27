@@ -19,27 +19,57 @@ connectDB().then(() => {
       try {
         const users = parseExcelFile(filePath);
 
-        for (const user of users) {
-          if (!user) {
-            continue; // Use continue to skip to the next iteration
-          }
+        if (!users || users.length === 0) {
+          console.log("No users found in the file.");
+          return;
+        }
 
-          const whatsappNumber = user["whatsappNumber"];
-          const name = user.name;
+        // 1. Prepare bulk operations for Mongoose
+        const bulkOps = users
+          .map((user) => {
+            if (!user || !user.whatsappNumber) {
+              return null; // Skip invalid entries
+            }
+            return {
+              updateOne: {
+                filter: { whatsappNumber: user.whatsappNumber },
+                update: {
+                  $set: {
+                    name: user.name,
+                    state: "pending",
+                  },
+                },
+                upsert: true, // Insert if not found, update if found
+              },
+            };
+          })
+          .filter((op) => op !== null); // Filter out any null operations
 
-          // 1. Update or insert user in the database
-          const updatedUser = await WhatsappConversation.findOneAndUpdate(
-            { whatsappNumber },
-            { name, state: "pending" },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          );
+        if (bulkOps.length > 0) {
+          await WhatsappConversation.bulkWrite(bulkOps);
+          console.log(`✅ Successfully upserted ${bulkOps.length} users.`);
+        }
 
-          // 2. Add a job to a separate queue for sending the WhatsApp message
-          await messageQueue.add("send-whatsapp", { userId: updatedUser._id });
+        // 2. Retrieve all user IDs that were just processed
+        const whatsappNumbers = users
+          .map((user) => user?.whatsappNumber)
+          .filter(Boolean);
+        const processedUsers = await WhatsappConversation.find({
+          whatsappNumber: { $in: whatsappNumbers },
+        }).select("_id");
+
+        // 3. Add jobs to the message queue in bulk
+        if (processedUsers.length > 0) {
+          const messageJobs = processedUsers.map((user) => ({
+            name: "send-whatsapp",
+            data: { userId: user._id },
+          }));
+          await messageQueue.addBulk(messageJobs);
+          console.log(`✅ Enqueued ${messageJobs.length} bait message jobs.`);
         }
       } catch (error) {
         console.error("Error processing user list:", error);
-        throw error; // BullMQ will handle retries based on your queue settings
+        throw error; // BullMQ will handle retries
       } finally {
         // Clean up the uploaded file
         try {
@@ -57,15 +87,13 @@ connectDB().then(() => {
     }
   );
 
-  userProcessingWorker.on("completed", (job, result) => {
-    console.log(
-      `[Worker] Job ${job.id} in user-processing completed successfully.`
-    );
+  userProcessingWorker.on("completed", (job) => {
+    console.log(`[Worker] Job ${job.id} in user-processing completed.`);
   });
 
   userProcessingWorker.on("failed", (job, err) => {
     console.error(
-      `[Worker] Job ${job?.id} in user-processing failed with error: ${err.message}`
+      `[Worker] Job ${job?.id} in user-processing failed: ${err.message}`
     );
   });
 
@@ -85,18 +113,25 @@ connectDB().then(() => {
           throw new Error(`Conversation with id ${userId} not found.`);
         }
 
-        const messageSent = await sendWhatsappMessage(
+        await sendWhatsappMessage(
           conversation.whatsappNumber,
           "Hello, this is a bait message to start the conversation."
         );
-        conversation.state = "bait_message_sent";
-        conversation.lastMessageTimestamp = new Date();
-        conversation.conversationHistory.push({
-          message: "Initial bait message sent.",
-          from: "bot",
-          timestamp: new Date(),
+
+        // OPTIMIZED: Use a single findByIdAndUpdate operation
+        await WhatsappConversation.findByIdAndUpdate(userId, {
+          $set: {
+            state: "bait_message_sent",
+            lastMessageTimestamp: new Date(),
+          },
+          $push: {
+            conversationHistory: {
+              message: "Initial bait message sent.",
+              from: "bot",
+              timestamp: new Date(),
+            },
+          },
         });
-        await conversation.save();
       } catch (error) {
         console.error(`Failed to send Bait message to user ${userId}:`, error);
         throw error;
@@ -107,23 +142,20 @@ connectDB().then(() => {
         host: "127.0.0.1",
         port: 6379,
       },
-      // We are adding rate limiting here to avoid spamming the WhatsApp API
       limiter: {
-        max: 10, // Max 10 jobs
-        duration: 1000, // per second
+        max: 10,
+        duration: 1000,
       },
     }
   );
 
   whatsappMessageWorker.on("completed", (job) => {
-    console.log(
-      `[Worker] Job ${job.id} in message-sending completed successfully.`
-    );
+    console.log(`[Worker] Job ${job.id} in message-sending completed.`);
   });
 
   whatsappMessageWorker.on("failed", (job, err) => {
     console.error(
-      `[Worker] Job ${job?.id} in message-sending failed with error: ${err.message}`
+      `[Worker] Job ${job?.id} in message-sending failed: ${err.message}`
     );
   });
 
