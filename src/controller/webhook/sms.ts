@@ -1,22 +1,17 @@
 import { Request, Response } from "express";
 import { twilioClient } from "../../config/twilio";
 import { SMSConversation } from "../../models/sms.model";
-import { sendSMS } from "../../utils/smsFunctions";
+import { replyViaSms } from "../../utils/smsFunctions";
 import { aiWillDecideIfInterestedOrNot } from "../../utils/geminiFunctions";
 const { MessagingResponse } = require("twilio").twiml;
 
-// Webhook for incoming Twilio messages
+//Webhook for Incoming Messages
 export async function handleIncomingSMS(req: Request, res: Response) {
-  console.log(
-    "Incoming SMS webhook triggered",
-    JSON.stringify(req.body, null, 2)
-  );
-
   const from = req.body.From;
-  const body = req.body.Body.toLowerCase();
+  const smsRequest = req.body.Body;
 
-  console.log("Incoming SMS from:", from);
-  console.log("SMS Message body:", body);
+  console.log("SMS received from--", from);
+  console.log("Actual SMS--", smsRequest);
 
   const conversation = await SMSConversation.findOne({ phoneNumber: from });
 
@@ -32,34 +27,41 @@ export async function handleIncomingSMS(req: Request, res: Response) {
   switch (conversation.state) {
     case "started":
       conversation.state = "awaiting_main_message_reply";
-      await sendSMS(
-        from,
-        "Great! We have multiple options available.Prices will vary based on your route and travel date. Would you prefer a tour?"
+      replyViaSms(
+        res,
+        "Hi, thanks for reaching out to Sahil Travels! Are you looking for Sleeper or Seater? Private tour or Public? Let us know your travel dates too"
       );
       break;
 
     case "awaiting_main_message_reply":
       const isInterestedReply = await aiWillDecideIfInterestedOrNot(
-        body,
-        "Great! We have multiple options available.Prices will vary based on your route and travel date. Would you prefer a tour?"
+        smsRequest,
+        "Hi, thanks for reaching out to Sahil Travels! Are you looking for Sleeper or Seater? Private tour or Public? Let us know your travel dates too"
       );
 
       if (isInterestedReply === "true") {
         conversation.state = "interested";
-        await sendSMS(
-          from,
+        replyViaSms(
+          res,
           "Awesome! We will connect you to our travel expert shortly. Expect a call from our team soon"
         );
       } else {
         conversation.state = "not_interested";
-        await sendSMS(
-          from,
+        replyViaSms(
+          res,
           "No worries. Feel free to message us anytime if you need help with travel in the future. Have a great day!"
         );
       }
       break;
+
+    default: {
+      conversation.state = "interested";
+      replyViaSms(
+        res,
+        "Awesome! We will connect you to our travel expert shortly. Expect a call from our team soon"
+      );
+    }
   }
 
   await conversation.save();
-  res.sendStatus(200);
 }

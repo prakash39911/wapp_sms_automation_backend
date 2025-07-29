@@ -99,6 +99,14 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
             );
           }
           break;
+
+        default: {
+          conversation.state = "interested";
+          await sendWhatsappMessage(
+            from,
+            "Awesome! We will connect you to our travel expert shortly. Expect a call from our team soon"
+          );
+        }
         // Other states are handled by the cron job, not by user replies.
       }
       await conversation.save();

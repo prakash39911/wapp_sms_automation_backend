@@ -16,17 +16,18 @@ export async function handleSendSMS(req: Request, res: Response) {
     const response = await twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
-      messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
       to: to,
     });
 
-    console.log("SMS sent successfully:", response);
+    console.log("SMS sent successfully:", response.body);
     return res.status(200).json({ success: true, sid: response.sid });
   } catch (error) {
     console.error("Error sending SMS:", error);
     return res.status(500).json({ error: "Failed to send SMS." });
   }
 }
+
+// messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
 
 export async function handleStartConversation(req: Request, res: Response) {
   const { phoneNumber, name } = req.body;
@@ -51,10 +52,7 @@ export async function handleStartConversation(req: Request, res: Response) {
     conversation.lastMessageTimestamp = new Date();
 
     // Send the bait message
-    await sendSMS(
-      phoneNumber,
-      "Hi, thanks for reaching out to Sahil Travels! Are you looking for Sleeper or Seater? Private tour or Public? Let us know your travel dates too"
-    );
+    await sendSMS(phoneNumber, "Hi! This is a Bait Message!");
     await conversation.save();
 
     res.status(200).json({

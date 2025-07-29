@@ -115,7 +115,7 @@ connectDB().then(() => {
 
         await sendWhatsappMessage(
           conversation.whatsappNumber,
-          "Hello, this is a bait message to start the conversation."
+          "Hello, Chandra ! How are you ? Just Asking !"
         );
 
         // OPTIMIZED: Use a single findByIdAndUpdate operation

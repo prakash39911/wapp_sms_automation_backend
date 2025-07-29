@@ -3,10 +3,10 @@ import { SMSConversation } from "../../models/sms.model";
 import { sendSMS } from "../../utils/smsFunctions";
 
 export const startSmsCronJobs = () => {
-  cron.schedule("0 * * * *", async () => {
+  cron.schedule("*/2 * * * *", async () => {
     console.log("Running scheduled SMS follow-up job...");
 
-    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const twoDaysAgo = new Date(Date.now() - 2 * 60 * 1000);
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     //Find Users who haven't replied to the Bait message

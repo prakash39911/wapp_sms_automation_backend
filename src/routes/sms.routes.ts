@@ -4,6 +4,7 @@ import {
   handleStartConversation,
 } from "../controller/sms.controller";
 import { handleIncomingSMS } from "../controller/webhook/sms";
+import twilio from "twilio";
 
 const router = Router();
 
@@ -14,6 +15,6 @@ router.post("/start-conversation", handleStartConversation);
 router.post("/sendSms", handleSendSMS);
 
 // Webhook for incoming SMS
-router.post("/webhook", handleIncomingSMS);
+router.post("/webhook", twilio.webhook({ validate: false }), handleIncomingSMS);
 
 export default router;
